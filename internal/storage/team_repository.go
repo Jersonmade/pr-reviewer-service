@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"database/sql"
+	"log"
 
 	"github.com/Jersonmade/pr-reviewer-service/internal/models"
 )
@@ -12,14 +14,22 @@ func (s *PostgresStorage) CreateTeam(ctx context.Context, team *models.Team) err
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			log.Printf("tx rollback failed: %v", err)
+		}
+	}()
 
 	var exists bool
 
-	tx.QueryRowContext(ctx,
+	err = tx.QueryRowContext(ctx,
 		"SELECT EXISTS(SELECT 1 FROM teams WHERE team_name = $1)",
 		team.TeamName,
 	).Scan(&exists)
+
+	if err != nil {
+		return err
+	}
 
 	if exists {
 		return ErrTeamExists
@@ -80,7 +90,11 @@ func (s *PostgresStorage) GetTeam(ctx context.Context, teamName string) (*models
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("rows close failed: %v", err)
+		}
+	}()
 
 	members := []models.TeamMember{}
 	for rows.Next() {

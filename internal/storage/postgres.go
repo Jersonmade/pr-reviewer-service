@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	ErrTeamExists   = errors.New("TEAM_EXISTS")
-	ErrNotFound = errors.New("NOT_FOUND")
-	ErrPRExists     = errors.New("PR_EXISTS")
-	ErrNotAssigned  = errors.New("NOT_ASSIGNED")
+	ErrTeamExists  = errors.New("TEAM_EXISTS")
+	ErrNotFound    = errors.New("NOT_FOUND")
+	ErrPRExists    = errors.New("PR_EXISTS")
+	ErrNotAssigned = errors.New("NOT_ASSIGNED")
 )
 
 type PostgresStorage struct {

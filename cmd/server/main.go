@@ -19,9 +19,9 @@ func main() {
 	dbName := getEnv("DB_NAME", "pr_reviewer_service")
 
 	connString := fmt.Sprintf(
-        "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-        dbHost, dbPort, dbUser, dbPassword, dbName,
-    )
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		dbHost, dbPort, dbUser, dbPassword, dbName,
+	)
 
 	store, err := storage.NewPostgresStorage(connString)
 
@@ -29,7 +29,11 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	defer store.Close()
+	defer func() {
+		if err := store.Close(); err != nil {
+			log.Printf("failed to close store: %v", err)
+		}
+	}()
 
 	log.Println("Successfully connected to PostgreSQL")
 
@@ -44,28 +48,32 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/team/add", teamHandler.AddTeam)
-    mux.HandleFunc("/team/get", teamHandler.GetTeam)
+	mux.HandleFunc("/team/get", teamHandler.GetTeam)
 
-    mux.HandleFunc("/users/setIsActive", userHandler.SetUserActive)
-    mux.HandleFunc("/users/getReview", userHandler.GetUserReviews)
+	mux.HandleFunc("/users/setIsActive", userHandler.SetUserActive)
+	mux.HandleFunc("/users/getReview", userHandler.GetUserReviews)
 
-    mux.HandleFunc("/pullRequest/create", prHandler.CreatePR)
-    mux.HandleFunc("/pullRequest/merge", prHandler.MergePR)
-    mux.HandleFunc("/pullRequest/reassign", prHandler.ReassignReviewer)
+	mux.HandleFunc("/pullRequest/create", prHandler.CreatePR)
+	mux.HandleFunc("/pullRequest/merge", prHandler.MergePR)
+	mux.HandleFunc("/pullRequest/reassign", prHandler.ReassignReviewer)
 
-    mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-        w.Header().Set("Content-Type", "application/json")
-        w.WriteHeader(http.StatusOK)
-        w.Write([]byte(`{"status":"ok"}`))
-    })
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(`{"status":"ok"}`))
+		if err != nil {
+			log.Printf("failed to write response: %v", err)
+		}
+	})
 
 	port := getEnv("PORT", "8080")
 
-    log.Printf("Server starting on :%s...\n", port)
+	log.Printf("Server starting on :%s...\n", port)
 
-    if err := http.ListenAndServe(":" + port, mux); err != nil {
-        log.Fatal(err)
-    }
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
+		log.Printf("Server failed: %v", err)
+		return
+	}
 }
 
 func getEnv(key, defaultValue string) string {

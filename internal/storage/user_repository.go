@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/Jersonmade/pr-reviewer-service/internal/models"
 )
-
 
 func (s *PostgresStorage) GetUser(ctx context.Context, userID string) (*models.User, error) {
 	var user models.User
@@ -74,10 +74,16 @@ func (s *PostgresStorage) GetActiveTeamMembers(ctx context.Context, teamName, ex
 	}
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
+
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("rows close failed: %v", err)
+		}
+	}()
 
 	candidates := []string{}
 	for rows.Next() {

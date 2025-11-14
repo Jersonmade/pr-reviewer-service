@@ -10,13 +10,13 @@ import (
 )
 
 type PRService struct {
-	storage *storage.PostgresStorage
+	storage     *storage.PostgresStorage
 	userService *UserService
 }
 
-func NewPRService(s *storage.PostgresStorage, us *UserService) (*PRService) {
+func NewPRService(s *storage.PostgresStorage, us *UserService) *PRService {
 	return &PRService{
-		storage: s,
+		storage:     s,
 		userService: us,
 	}
 }
@@ -38,13 +38,14 @@ func (ps *PRService) CreatePR(ctx context.Context, prID, prName, authorID string
 
 	if err != nil {
 		if err.Error() == "USER_NOT_FOUND" {
-            return nil, errors.New("AUTHOR_NOT_FOUND")
-        }
+			return nil, errors.New("AUTHOR_NOT_FOUND")
+		}
 
-    	return nil, err
+		return nil, err
 	}
 
 	reviewers, err := ps.selectReviewers(ctx, author.TeamName, authorID)
+
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +60,8 @@ func (ps *PRService) CreatePR(ctx context.Context, prID, prName, authorID string
 
 	if err := ps.storage.CreatePR(ctx, pr); err != nil {
 		if errors.Is(err, storage.ErrPRExists) {
-            return nil, errors.New("PR_EXISTS")
-        }
+			return nil, errors.New("PR_EXISTS")
+		}
 
 		return nil, err
 	}
@@ -68,16 +69,15 @@ func (ps *PRService) CreatePR(ctx context.Context, prID, prName, authorID string
 	return ps.storage.GetPR(ctx, prID)
 }
 
-
 func (ps *PRService) selectReviewers(ctx context.Context, teamName, excludeUserID string) ([]string, error) {
 	candidates, err := ps.userService.GetActiveTeamMembers(ctx, teamName, excludeUserID, []string{})
-	
+
 	if err != nil {
 		return nil, err
 	}
 
 	if len(candidates) == 0 {
-    	return []string{}, nil
+		return []string{}, nil
 	}
 
 	rand.Shuffle(len(candidates), func(i, j int) {
@@ -92,7 +92,6 @@ func (ps *PRService) selectReviewers(ctx context.Context, teamName, excludeUserI
 	return candidates[:max], nil
 }
 
-
 func (ps *PRService) GetPR(ctx context.Context, prID string) (*models.PullRequest, error) {
 	if prID == "" {
 		return nil, errors.New("pull_request_id cannot be empty")
@@ -102,14 +101,13 @@ func (ps *PRService) GetPR(ctx context.Context, prID string) (*models.PullReques
 
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-            return nil, errors.New("PR_NOT_FOUND")
-        }
+			return nil, errors.New("PR_NOT_FOUND")
+		}
 		return nil, err
 	}
 
 	return pr, nil
 }
-
 
 func (ps *PRService) MergePR(ctx context.Context, prID string) (*models.PullRequest, error) {
 	if prID == "" {
@@ -120,8 +118,8 @@ func (ps *PRService) MergePR(ctx context.Context, prID string) (*models.PullRequ
 
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-            return nil, errors.New("PR_NOT_FOUND")
-        }
+			return nil, errors.New("PR_NOT_FOUND")
+		}
 
 		return nil, err
 	}
@@ -132,17 +130,16 @@ func (ps *PRService) MergePR(ctx context.Context, prID string) (*models.PullRequ
 
 	mergedPR, err := ps.storage.MergePR(ctx, prID)
 
-    if err != nil {
-        if errors.Is(err, storage.ErrNotFound) {
-            return nil, errors.New("PR_NOT_FOUND")
-        }
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, errors.New("PR_NOT_FOUND")
+		}
 
-        return nil, err
-    }
+		return nil, err
+	}
 
-    return mergedPR, nil
+	return mergedPR, nil
 }
-
 
 func (ps *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID string) (string, error) {
 	if prID == "" {
@@ -179,14 +176,14 @@ func (ps *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID s
 
 	if err != nil {
 		if err.Error() == "USER_NOT_FOUND" {
-            return "", errors.New("USER_NOT_FOUND")
-        }
+			return "", errors.New("USER_NOT_FOUND")
+		}
 
 		return "", err
 	}
 
 	candidates, err := ps.userService.GetActiveTeamMembers(ctx, oldReviewer.TeamName, pr.AuthorID, pr.AssignedReviewers)
-	
+
 	if err != nil {
 		return "", err
 	}
@@ -199,15 +196,14 @@ func (ps *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID s
 
 	if err := ps.storage.ReassignReviewer(ctx, prID, oldReviewerID, newReviewerID); err != nil {
 		if errors.Is(err, storage.ErrNotAssigned) {
-            return "", errors.New("NOT_ASSIGNED")
-        }
-		
+			return "", errors.New("NOT_ASSIGNED")
+		}
+
 		return "", err
 	}
 
 	return newReviewerID, nil
 }
-
 
 func (ps *PRService) GetPRsByReviewer(ctx context.Context, userID string) ([]models.PullRequestShort, error) {
 	if userID == "" {
@@ -221,16 +217,14 @@ func (ps *PRService) GetPRsByReviewer(ctx context.Context, userID string) ([]mod
 	return ps.storage.GetPRsByReviewer(ctx, userID)
 }
 
-
 func (ps *PRService) ValidatePRExists(ctx context.Context, prID string) error {
 	_, err := ps.GetPR(ctx, prID)
 	return err
 }
 
-
 func (ps *PRService) IsPRMerged(ctx context.Context, prID string) (bool, error) {
 	pr, err := ps.GetPR(ctx, prID)
-	
+
 	if err != nil {
 		return false, err
 	}

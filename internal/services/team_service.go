@@ -13,13 +13,11 @@ type TeamService struct {
 	storage *storage.PostgresStorage
 }
 
-
 func NewTeamService(s *storage.PostgresStorage) *TeamService {
 	return &TeamService{
 		storage: s,
 	}
 }
-
 
 func (ts *TeamService) CreateTeam(ctx context.Context, team *models.Team) (*models.Team, error) {
 	if team.TeamName == "" {
@@ -27,14 +25,14 @@ func (ts *TeamService) CreateTeam(ctx context.Context, team *models.Team) (*mode
 	}
 
 	if len(team.Members) == 0 {
-    	return nil, errors.New("team must have at least one member")
+		return nil, errors.New("team must have at least one member")
 	}
 
 	for i, member := range team.Members {
 		if member.UserID == "" {
 			return nil, fmt.Errorf("member at index %d has empty user_id", i)
 		}
-		
+
 		if member.Username == "" {
 			return nil, fmt.Errorf("member at index %d has empty username", i)
 		}
@@ -52,14 +50,13 @@ func (ts *TeamService) CreateTeam(ctx context.Context, team *models.Team) (*mode
 
 	if err != nil {
 		if err.Error() == "TEAM_EXISTS" {
-            return nil, errors.New("TEAM_EXISTS")
-        }
+			return nil, errors.New("TEAM_EXISTS")
+		}
 		return nil, err
 	}
 
 	return ts.storage.GetTeam(ctx, team.TeamName)
 }
-
 
 func (ts *TeamService) GetTeam(ctx context.Context, teamName string) (*models.Team, error) {
 	if teamName == "" {
@@ -70,8 +67,8 @@ func (ts *TeamService) GetTeam(ctx context.Context, teamName string) (*models.Te
 
 	if err != nil {
 		if err.Error() == "NOT_FOUND" {
-            return nil, errors.New("NOT_FOUND")
-        }
+			return nil, errors.New("NOT_FOUND")
+		}
 
 		return nil, err
 	}
@@ -79,12 +76,10 @@ func (ts *TeamService) GetTeam(ctx context.Context, teamName string) (*models.Te
 	return team, nil
 }
 
-
 func (ts *TeamService) ValidateTeamExists(ctx context.Context, teamName string) error {
 	_, err := ts.GetTeam(ctx, teamName)
 	return err
 }
-
 
 func (ts *TeamService) GetTeamMemberCount(ctx context.Context, teamName string) (int, error) {
 	team, err := ts.GetTeam(ctx, teamName)
@@ -96,10 +91,9 @@ func (ts *TeamService) GetTeamMemberCount(ctx context.Context, teamName string) 
 	return len(team.Members), nil
 }
 
-
 func (ts *TeamService) GetActiveTeamMemberCount(ctx context.Context, teamName string) (int, error) {
 	team, err := ts.GetTeam(ctx, teamName)
-	
+
 	if err != nil {
 		return 0, err
 	}
@@ -114,10 +108,9 @@ func (ts *TeamService) GetActiveTeamMemberCount(ctx context.Context, teamName st
 	return count, nil
 }
 
-
 func (ts *TeamService) IsUserInTeam(ctx context.Context, teamName, userID string) (bool, error) {
 	team, err := ts.GetTeam(ctx, teamName)
-	
+
 	if err != nil {
 		return false, err
 	}

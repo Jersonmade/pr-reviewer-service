@@ -12,11 +12,9 @@ type UserService struct {
 	storage *storage.PostgresStorage
 }
 
-
 func NewUserService(s *storage.PostgresStorage) *UserService {
 	return &UserService{storage: s}
 }
-
 
 func (us *UserService) GetUser(ctx context.Context, userID string) (*models.User, error) {
 	if userID == "" {
@@ -27,15 +25,14 @@ func (us *UserService) GetUser(ctx context.Context, userID string) (*models.User
 
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-            return nil, errors.New("USER_NOT_FOUND")
-        }
+			return nil, errors.New("USER_NOT_FOUND")
+		}
 
 		return nil, err
 	}
 
 	return user, nil
 }
-
 
 func (us *UserService) SetUserActive(ctx context.Context, userID string, isActive bool) (*models.User, error) {
 	if userID == "" {
@@ -46,8 +43,8 @@ func (us *UserService) SetUserActive(ctx context.Context, userID string, isActiv
 
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-            return nil, errors.New("USER_NOT_FOUND")
-        }
+			return nil, errors.New("USER_NOT_FOUND")
+		}
 
 		return nil, err
 	}
@@ -56,15 +53,14 @@ func (us *UserService) SetUserActive(ctx context.Context, userID string, isActiv
 
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-            return nil, errors.New("USER_NOT_FOUND")
-        }
-		
+			return nil, errors.New("USER_NOT_FOUND")
+		}
+
 		return nil, err
 	}
 
 	return user, nil
 }
-
 
 func (us *UserService) GetActiveTeamMembers(ctx context.Context, teamName, excludeUserID string, excludeReviewers []string) ([]string, error) {
 	if teamName == "" {
@@ -73,7 +69,6 @@ func (us *UserService) GetActiveTeamMembers(ctx context.Context, teamName, exclu
 
 	return us.storage.GetActiveTeamMembers(ctx, teamName, excludeUserID, excludeReviewers)
 }
-
 
 func (us *UserService) ValidateUser(ctx context.Context, userID string) error {
 	user, err := us.storage.GetUser(ctx, userID)
@@ -88,7 +83,6 @@ func (us *UserService) ValidateUser(ctx context.Context, userID string) error {
 
 	return nil
 }
-
 
 func (us *UserService) GetUserTeamName(ctx context.Context, userID string) (string, error) {
 	user, err := us.storage.GetUser(ctx, userID)
