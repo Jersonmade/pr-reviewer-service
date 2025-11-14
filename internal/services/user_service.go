@@ -26,6 +26,10 @@ func (us *UserService) GetUser(ctx context.Context, userID string) (*models.User
 	user, err := us.storage.GetUser(ctx, userID)
 
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+            return nil, errors.New("USER_NOT_FOUND")
+        }
+
 		return nil, err
 	}
 
@@ -41,12 +45,20 @@ func (us *UserService) SetUserActive(ctx context.Context, userID string, isActiv
 	_, err := us.storage.GetUser(ctx, userID)
 
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+            return nil, errors.New("USER_NOT_FOUND")
+        }
+
 		return nil, err
 	}
 
 	user, err := us.storage.UpdateUserActive(ctx, userID, isActive)
 
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+            return nil, errors.New("USER_NOT_FOUND")
+        }
+		
 		return nil, err
 	}
 

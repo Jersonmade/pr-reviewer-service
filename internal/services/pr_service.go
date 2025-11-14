@@ -14,7 +14,7 @@ type PRService struct {
 	userService *UserService
 }
 
-func (prs *PRService) NewPRService(s *storage.PostgresStorage, us *UserService) (*PRService) {
+func NewPRService(s *storage.PostgresStorage, us *UserService) (*PRService) {
 	return &PRService{
 		storage: s,
 		userService: us,
@@ -37,6 +37,10 @@ func (ps *PRService) CreatePR(ctx context.Context, prID, prName, authorID string
 	author, err := ps.userService.GetUser(ctx, authorID)
 
 	if err != nil {
+		if err.Error() == "USER_NOT_FOUND" {
+            return nil, errors.New("AUTHOR_NOT_FOUND")
+        }
+
     	return nil, err
 	}
 
@@ -54,6 +58,10 @@ func (ps *PRService) CreatePR(ctx context.Context, prID, prName, authorID string
 	}
 
 	if err := ps.storage.CreatePR(ctx, pr); err != nil {
+		if errors.Is(err, storage.ErrPRExists) {
+            return nil, errors.New("PR_EXISTS")
+        }
+
 		return nil, err
 	}
 
@@ -93,6 +101,9 @@ func (ps *PRService) GetPR(ctx context.Context, prID string) (*models.PullReques
 	pr, err := ps.storage.GetPR(ctx, prID)
 
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+            return nil, errors.New("PR_NOT_FOUND")
+        }
 		return nil, err
 	}
 
@@ -106,7 +117,12 @@ func (ps *PRService) MergePR(ctx context.Context, prID string) (*models.PullRequ
 	}
 
 	pr, err := ps.storage.GetPR(ctx, prID)
+
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+            return nil, errors.New("PR_NOT_FOUND")
+        }
+
 		return nil, err
 	}
 
@@ -114,7 +130,17 @@ func (ps *PRService) MergePR(ctx context.Context, prID string) (*models.PullRequ
 		return pr, nil
 	}
 
-	return ps.storage.MergePR(ctx, prID)
+	mergedPR, err := ps.storage.MergePR(ctx, prID)
+
+    if err != nil {
+        if errors.Is(err, storage.ErrNotFound) {
+            return nil, errors.New("PR_NOT_FOUND")
+        }
+
+        return nil, err
+    }
+
+    return mergedPR, nil
 }
 
 
@@ -152,6 +178,10 @@ func (ps *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID s
 	oldReviewer, err := ps.userService.GetUser(ctx, oldReviewerID)
 
 	if err != nil {
+		if err.Error() == "USER_NOT_FOUND" {
+            return "", errors.New("USER_NOT_FOUND")
+        }
+
 		return "", err
 	}
 
@@ -168,9 +198,10 @@ func (ps *PRService) ReassignReviewer(ctx context.Context, prID, oldReviewerID s
 	newReviewerID := candidates[rand.Intn(len(candidates))]
 
 	if err := ps.storage.ReassignReviewer(ctx, prID, oldReviewerID, newReviewerID); err != nil {
-		if err.Error() == "NOT_ASSIGNED" {
-			return "", errors.New("NOT_ASSIGNED")
-		}
+		if errors.Is(err, storage.ErrNotAssigned) {
+            return "", errors.New("NOT_ASSIGNED")
+        }
+		
 		return "", err
 	}
 

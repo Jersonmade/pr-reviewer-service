@@ -23,7 +23,7 @@ func NewTeamService(s *storage.PostgresStorage) *TeamService {
 
 func (ts *TeamService) CreateTeam(ctx context.Context, team *models.Team) (*models.Team, error) {
 	if team.TeamName == "" {
-		return nil, errors.New("Team name cannot be empty")
+		return nil, errors.New("team_name cannot be empty")
 	}
 
 	if len(team.Members) == 0 {
@@ -51,6 +51,9 @@ func (ts *TeamService) CreateTeam(ctx context.Context, team *models.Team) (*mode
 	err := ts.storage.CreateTeam(ctx, team)
 
 	if err != nil {
+		if err.Error() == "TEAM_EXISTS" {
+            return nil, errors.New("TEAM_EXISTS")
+        }
 		return nil, err
 	}
 
@@ -60,12 +63,16 @@ func (ts *TeamService) CreateTeam(ctx context.Context, team *models.Team) (*mode
 
 func (ts *TeamService) GetTeam(ctx context.Context, teamName string) (*models.Team, error) {
 	if teamName == "" {
-		return nil, errors.New("Team name cannot be empty")
+		return nil, errors.New("team_name cannot be empty")
 	}
 
 	team, err := ts.storage.GetTeam(ctx, teamName)
 
 	if err != nil {
+		if err.Error() == "NOT_FOUND" {
+            return nil, errors.New("NOT_FOUND")
+        }
+
 		return nil, err
 	}
 

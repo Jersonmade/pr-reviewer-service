@@ -41,9 +41,12 @@ func (h *UserHandler) SetUserActive(w http.ResponseWriter, r *http.Request) {
 
     user, err := h.userService.SetUserActive(ctx, req.UserID, req.IsActive)
     if err != nil {
-        if err.Error() == "NOT_FOUND" {
-            respondError(w, http.StatusNotFound, "NOT_FOUND", "user not found")
-        } else {
+        switch err.Error() {
+        case "USER_NOT_FOUND":
+            respondError(w, http.StatusNotFound, "USER_NOT_FOUND", "user not found")
+        case "User ID cannot be empty":
+            respondError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+        default:
             respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
         }
         return
@@ -66,8 +69,14 @@ func (h *UserHandler) GetUserReviews(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if _, err := h.userService.GetUser(ctx, userID); err != nil {
-        respondError(w, http.StatusNotFound, "NOT_FOUND", "user not found")
+    _, err := h.userService.GetUser(ctx, userID)
+    
+    if err != nil {
+        if err.Error() == "USER_NOT_FOUND" {
+            respondError(w, http.StatusNotFound, "USER_NOT_FOUND", "user not found")
+        } else {
+            respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+        }
         return
     }
 

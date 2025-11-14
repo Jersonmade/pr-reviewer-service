@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"github.com/Jersonmade/pr-reviewer-service/internal/models"
@@ -28,7 +27,7 @@ func (s *PostgresStorage) CreatePR(ctx context.Context, pr *models.PullRequest) 
     }
 
     if exists {
-        return errors.New("PR already exists")
+        return ErrPRExists
     }
 
     _, err = tx.ExecContext(ctx, `
@@ -66,7 +65,7 @@ func (s *PostgresStorage) GetPR(ctx context.Context, prID string) (*models.PullR
     `, prID).Scan(&pr.PullRequestID, &pr.PullRequestName, &pr.AuthorID, &pr.Status, &createdAt, &mergedAt)
     
     if err == sql.ErrNoRows {
-        return nil, errors.New("Not found")
+        return nil, ErrNotFound
     }
 
     if err != nil {
@@ -146,7 +145,7 @@ func (s *PostgresStorage) ReassignReviewer(ctx context.Context, prID, oldReviewe
     }
 
     if rowsAffected == 0 {
-        return errors.New("Not assigned")
+        return ErrNotAssigned
     }
 
     _, err = tx.ExecContext(ctx, `
@@ -163,7 +162,7 @@ func (s *PostgresStorage) ReassignReviewer(ctx context.Context, prID, oldReviewe
 
 func (s *PostgresStorage) GetPRsByReviewer(ctx context.Context, userID string) ([]models.PullRequestShort, error) {
     rows, err := s.db.QueryContext(ctx, `
-        SELECT DISTINCT p.pull_request_id, p.pull_request_name, p.author_id, p.status
+        SELECT DISTINCT p.pull_request_id, p.pull_request_name, p.author_id, p.status, p.created_at
         FROM pull_requests p
         INNER JOIN pr_reviewers pr ON p.pull_request_id = pr.pull_request_id
         WHERE pr.reviewer_id = $1
@@ -180,7 +179,8 @@ func (s *PostgresStorage) GetPRsByReviewer(ctx context.Context, userID string) (
 	
     for rows.Next() {
         var pr models.PullRequestShort
-        if err := rows.Scan(&pr.PullRequestID, &pr.PullRequestName, &pr.AuthorID, &pr.Status); err != nil {
+        var createdAt time.Time
+        if err := rows.Scan(&pr.PullRequestID, &pr.PullRequestName, &pr.AuthorID, &pr.Status, &createdAt); err != nil {
             return nil, err
         }
         result = append(result, pr)

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Jersonmade/pr-reviewer-service/internal/handlers"
+	"github.com/Jersonmade/pr-reviewer-service/internal/services"
 	"github.com/Jersonmade/pr-reviewer-service/internal/storage"
 )
 
@@ -31,9 +33,33 @@ func main() {
 
 	log.Println("Successfully connected to PostgreSQL")
 
+	userService := services.NewUserService(store)
+	teamService := services.NewTeamService(store)
+	prService := services.NewPRService(store, userService)
+
+	userHandler := handlers.NewUserHandler(userService, prService)
+	teamHandler := handlers.NewTeamHandler(teamService)
+	prHandler := handlers.NewPRHandler(prService)
+
 	mux := http.NewServeMux()
 
-	port := getEnv("PORT", "8085")
+	mux.HandleFunc("/team/add", teamHandler.AddTeam)
+    mux.HandleFunc("/team/get", teamHandler.GetTeam)
+
+    mux.HandleFunc("/users/setIsActive", userHandler.SetUserActive)
+    mux.HandleFunc("/users/getReview", userHandler.GetUserReviews)
+
+    mux.HandleFunc("/pullRequest/create", prHandler.CreatePR)
+    mux.HandleFunc("/pullRequest/merge", prHandler.MergePR)
+    mux.HandleFunc("/pullRequest/reassign", prHandler.ReassignReviewer)
+
+    mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte(`{"status":"ok"}`))
+    })
+
+	port := getEnv("PORT", "8080")
 
     log.Printf("Server starting on :%s...\n", port)
 

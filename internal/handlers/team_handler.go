@@ -3,9 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
-	"github.com/Jersonmade/pr-reviewer-service/internal/services"
 	"github.com/Jersonmade/pr-reviewer-service/internal/models"
+	"github.com/Jersonmade/pr-reviewer-service/internal/services"
 )
 
 type TeamHandler struct {
@@ -36,18 +37,22 @@ func (h *TeamHandler) AddTeam(w http.ResponseWriter, r *http.Request) {
         switch err.Error() {
         case "TEAM_EXISTS":
             respondError(w, http.StatusBadRequest, "TEAM_EXISTS", "team_name already exists")
+            return
         case "team_name cannot be empty", "team must have at least one member":
             respondError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+            return
         case "NOT_FOUND":
             respondError(w, http.StatusNotFound, "NOT_FOUND", "team not found")
+            return
         default:
-            if len(err.Error()) > 8 && (err.Error()[:8] == "duplicate" || err.Error()[:6] == "member") {
-                respondError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
-            } else {
-                respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+            if strings.HasPrefix(err.Error(), "duplicate user_id") ||
+                strings.HasPrefix(err.Error(), "member at index") {
+                    respondError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+                    return
             }
+            respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+            return
         }
-        return
     }
 
     respondJSON(w, http.StatusCreated, map[string]interface{}{"team": createdTeam})

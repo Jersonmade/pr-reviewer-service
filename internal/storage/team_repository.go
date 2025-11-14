@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Jersonmade/pr-reviewer-service/internal/models"
 )
@@ -15,27 +14,25 @@ func (s *PostgresStorage) CreateTeam(ctx context.Context, team *models.Team) err
 	}
 	defer tx.Rollback()
 
-
 	var exists bool
 
-	tx.QueryRowContext(ctx, 
-		"SELECT EXISTS(SELECT 1 FROM teams WHERE team_name = $1)", 
+	tx.QueryRowContext(ctx,
+		"SELECT EXISTS(SELECT 1 FROM teams WHERE team_name = $1)",
 		team.TeamName,
 	).Scan(&exists)
 
 	if exists {
-		return errors.New("Team already exists")
+		return ErrTeamExists
 	}
 
-
-	_, err = tx.ExecContext(ctx, 
+	_, err = tx.ExecContext(ctx,
 		"INSERT INTO teams (team_name) VALUES ($1)",
 		team.TeamName,
 	)
 
 	if err != nil {
-        return err
-    }
+		return err
+	}
 
 	for _, member := range team.Members {
 		_, err = tx.ExecContext(ctx, `
@@ -47,7 +44,7 @@ func (s *PostgresStorage) CreateTeam(ctx context.Context, team *models.Team) err
 				is_active = EXCLUDED.is_active,
 				updated_at = CURRENT_TIMESTAMP
 			`, member.UserID, member.Username, team.TeamName, member.IsActive)
-		
+
 		if err != nil {
 			return err
 		}
@@ -59,7 +56,7 @@ func (s *PostgresStorage) CreateTeam(ctx context.Context, team *models.Team) err
 func (s *PostgresStorage) GetTeam(ctx context.Context, teamName string) (*models.Team, error) {
 	var exists bool
 
-	err := s.db.QueryRowContext(ctx, 
+	err := s.db.QueryRowContext(ctx,
 		"SELECT EXISTS(SELECT 1 FROM teams WHERE team_name = $1)",
 		teamName,
 	).Scan(&exists)
@@ -69,7 +66,7 @@ func (s *PostgresStorage) GetTeam(ctx context.Context, teamName string) (*models
 	}
 
 	if !exists {
-		return nil, errors.New("Team not found")
+		return nil, ErrNotFound
 	}
 
 	rows, err := s.db.QueryContext(ctx, `
@@ -78,7 +75,7 @@ func (s *PostgresStorage) GetTeam(ctx context.Context, teamName string) (*models
 		WHERE team_name = $1
 		ORDER BY username
 	`, teamName)
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +95,6 @@ func (s *PostgresStorage) GetTeam(ctx context.Context, teamName string) (*models
 
 	return &models.Team{
 		TeamName: teamName,
-		Members: members,
+		Members:  members,
 	}, nil
 }

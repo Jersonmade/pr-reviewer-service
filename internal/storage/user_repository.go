@@ -3,11 +3,11 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 
 	"github.com/Jersonmade/pr-reviewer-service/internal/models"
 )
+
 
 func (s *PostgresStorage) GetUser(ctx context.Context, userID string) (*models.User, error) {
 	var user models.User
@@ -19,19 +19,19 @@ func (s *PostgresStorage) GetUser(ctx context.Context, userID string) (*models.U
 	`, userID).Scan(&user.UserID, &user.Username, &user.TeamName, &user.IsActive)
 
 	if err == sql.ErrNoRows {
-		return nil, errors.New("User not found")
+		return nil, ErrNotFound
 	}
 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &user, nil
 }
 
 func (s *PostgresStorage) UpdateUserActive(ctx context.Context, userID string, isActive bool) (*models.User, error) {
 	res, err := s.db.ExecContext(ctx, `
-		UPADTE users
+		UPDATE users
 		SET is_active = $1, updated_at = CURRENT_TIMESTAMP
 		WHERE user_id = $2
 	`, isActive, userID)
@@ -47,46 +47,46 @@ func (s *PostgresStorage) UpdateUserActive(ctx context.Context, userID string, i
 	}
 
 	if rowsAffected == 0 {
-		return nil, errors.New("Not found")
+		return nil, ErrNotFound
 	}
 
 	return s.GetUser(ctx, userID)
 }
 
 func (s *PostgresStorage) GetActiveTeamMembers(ctx context.Context, teamName, excludeUserID string, excludeReviewers []string) ([]string, error) {
-    query := `
+	query := `
         SELECT user_id
         FROM users
         WHERE team_name = $1 AND is_active = true AND user_id != $2
     `
-    args := []interface{}{teamName, excludeUserID}
+	args := []interface{}{teamName, excludeUserID}
 
-    if len(excludeReviewers) > 0 {
-        query += " AND user_id NOT IN ("
-        for i, reviewerID := range excludeReviewers {
-            if i > 0 {
-                query += ", "
-            }
-            query += fmt.Sprintf("$%d", i+3)
-            args = append(args, reviewerID)
-        }
-        query += ")"
-    }
+	if len(excludeReviewers) > 0 {
+		query += " AND user_id NOT IN ("
+		for i, reviewerID := range excludeReviewers {
+			if i > 0 {
+				query += ", "
+			}
+			query += fmt.Sprintf("$%d", i+3)
+			args = append(args, reviewerID)
+		}
+		query += ")"
+	}
 
-    rows, err := s.db.QueryContext(ctx, query, args...)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    candidates := []string{}
-    for rows.Next() {
-        var userID string
-        if err := rows.Scan(&userID); err != nil {
-            return nil, err
-        }
-        candidates = append(candidates, userID)
-    }
+	candidates := []string{}
+	for rows.Next() {
+		var userID string
+		if err := rows.Scan(&userID); err != nil {
+			return nil, err
+		}
+		candidates = append(candidates, userID)
+	}
 
-    return candidates, nil
+	return candidates, nil
 }

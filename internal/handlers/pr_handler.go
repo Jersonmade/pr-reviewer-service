@@ -39,18 +39,14 @@ func (h *PRHandler) CreatePR(w http.ResponseWriter, r *http.Request) {
 
     if err != nil {
         switch err.Error() {
-        case "NOT_FOUND":
+        case "AUTHOR_NOT_FOUND", "USER_NOT_FOUND":
             respondError(w, http.StatusNotFound, "NOT_FOUND", "author not found")
         case "PR_EXISTS":
             respondError(w, http.StatusConflict, "PR_EXISTS", "PR id already exists")
+        case "pull_request_id cannot be empty", "pull_request_name cannot be empty", "author_id cannot be empty":
+            respondError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
         default:
-            if err.Error() == "pull_request_id cannot be empty" ||
-                err.Error() == "pull_request_name cannot be empty" ||
-                err.Error() == "author_id cannot be empty" {
-                respondError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
-            } else {
-                respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
-            }
+            respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
         }
         return
     }
@@ -77,13 +73,14 @@ func (h *PRHandler) MergePR(w http.ResponseWriter, r *http.Request) {
     }
 
     pr, err := h.prService.MergePR(ctx, req.PullRequestID)
+
     if err != nil {
-        if err.Error() == "NOT_FOUND" {
+        if err.Error() == "PR_NOT_FOUND" {
             respondError(w, http.StatusNotFound, "NOT_FOUND", "PR not found")
-            return
+        } else {
+            respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
         }
 
-        respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
         return
     }
 
@@ -110,9 +107,10 @@ func (h *PRHandler) ReassignReviewer(w http.ResponseWriter, r *http.Request) {
     }
 
     newReviewerID, err := h.prService.ReassignReviewer(ctx, req.PullRequestID, req.OldUserID)
+    
     if err != nil {
         switch err.Error() {
-        case "NOT_FOUND":
+        case "PR_NOT_FOUND", "USER_NOT_FOUND":
             respondError(w, http.StatusNotFound, "NOT_FOUND", "PR or user not found")
         case "PR_MERGED":
             respondError(w, http.StatusConflict, "PR_MERGED", "cannot reassign on merged PR")
