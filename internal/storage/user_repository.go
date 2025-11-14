@@ -29,7 +29,7 @@ func (s *PostgresStorage) GetUser(ctx context.Context, userID string) (*models.U
 	return &user, nil
 }
 
-func (s *PostgresStorage) UpdateUserActive(ctx context.Context, userID string, isActive string) (*models.User, error) {
+func (s *PostgresStorage) UpdateUserActive(ctx context.Context, userID string, isActive bool) (*models.User, error) {
 	res, err := s.db.ExecContext(ctx, `
 		UPADTE users
 		SET is_active = $1, updated_at = CURRENT_TIMESTAMP
