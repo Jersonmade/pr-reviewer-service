@@ -40,10 +40,12 @@ func main() {
 	userService := services.NewUserService(store)
 	teamService := services.NewTeamService(store)
 	prService := services.NewPRService(store, userService)
+	analyticsService := services.NewAnalyticsService(store)
 
 	userHandler := handlers.NewUserHandler(userService, prService)
 	teamHandler := handlers.NewTeamHandler(teamService)
 	prHandler := handlers.NewPRHandler(prService)
+	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService)
 
 	mux := http.NewServeMux()
 
@@ -56,6 +58,8 @@ func main() {
 	mux.HandleFunc("/pullRequest/create", prHandler.CreatePR)
 	mux.HandleFunc("/pullRequest/merge", prHandler.MergePR)
 	mux.HandleFunc("/pullRequest/reassign", prHandler.ReassignReviewer)
+
+	mux.HandleFunc("/stats/review_assignments", analyticsHandler.GetReviewAssignmentsStats)
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
