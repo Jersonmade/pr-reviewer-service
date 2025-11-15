@@ -32,7 +32,12 @@ func TestMergePR(t *testing.T) {
 	}
 
 	var response map[string]interface{}
-	json.NewDecoder(w2.Body).Decode(&response)
+	err := json.NewDecoder(w2.Body).Decode(&response)
+
+	if err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
+
 	pr := response["pr"].(map[string]interface{})
 
 	if pr["status"] != "MERGED" {

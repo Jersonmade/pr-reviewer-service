@@ -62,49 +62,48 @@ func TestGetNonExistentPR(t *testing.T) {
 }
 
 func TestGetTeam(t *testing.T) {
-    env := SetupTestEnvironment(t)
-    defer env.Cleanup()
+	env := SetupTestEnvironment(t)
+	defer env.Cleanup()
 
-    CreateTestTeam(t, env.TeamHandler, "qa", 4)
+	CreateTestTeam(t, env.TeamHandler, "qa", 4)
 
-    req := httptest.NewRequest(http.MethodGet, "/team/get?team_name=qa", nil)
-    w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/team/get?team_name=qa", nil)
+	w := httptest.NewRecorder()
 
-    env.TeamHandler.GetTeam(w, req)
+	env.TeamHandler.GetTeam(w, req)
 
-    if w.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
-    }
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
 
-    var team map[string]interface{}
-    if err := json.NewDecoder(w.Body).Decode(&team); err != nil {
-        t.Fatalf("failed to decode response: %v", err)
-    }
+	var team map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&team); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 
-    if team["team_name"] != "qa" {
-        t.Errorf("expected team name 'qa', got %v", team["team_name"])
-    }
+	if team["team_name"] != "qa" {
+		t.Errorf("expected team name 'qa', got %v", team["team_name"])
+	}
 
-    members := team["members"].([]interface{})
+	members := team["members"].([]interface{})
 
-    if len(members) != 4 {
-        t.Fatalf("expected 4 members, got %d", len(members))
-    }
+	if len(members) != 4 {
+		t.Fatalf("expected 4 members, got %d", len(members))
+	}
 
-    for i, member := range members {
-        m := member.(map[string]interface{})
-        expectedUserID := fmt.Sprintf("u%d", 30+i)
+	for i, member := range members {
+		m := member.(map[string]interface{})
+		expectedUserID := fmt.Sprintf("u%d", 30+i)
 
-        if m["user_id"] != expectedUserID {
-            t.Errorf("member %d: expected user_id %s, got %v", i, expectedUserID, m["user_id"])
-        }
+		if m["user_id"] != expectedUserID {
+			t.Errorf("member %d: expected user_id %s, got %v", i, expectedUserID, m["user_id"])
+		}
 
-        if m["is_active"] != true {
-            t.Errorf("member %d should be active", i)
-        }
-    }
+		if m["is_active"] != true {
+			t.Errorf("member %d should be active", i)
+		}
+	}
 }
-
 
 func TestGetNonExistentTeam(t *testing.T) {
 	env := SetupTestEnvironment(t)
@@ -120,7 +119,11 @@ func TestGetNonExistentTeam(t *testing.T) {
 	}
 
 	var errorResponse map[string]interface{}
-	json.NewDecoder(w.Body).Decode(&errorResponse)
+	err := json.NewDecoder(w.Body).Decode(&errorResponse)
+
+	if err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
 
 	errorObj := errorResponse["error"].(map[string]interface{})
 	if errorObj["code"] != "NOT_FOUND" {
@@ -129,61 +132,65 @@ func TestGetNonExistentTeam(t *testing.T) {
 }
 
 func TestGetPRsByReviewer(t *testing.T) {
-    env := SetupTestEnvironment(t)
-    defer env.Cleanup()
+	env := SetupTestEnvironment(t)
+	defer env.Cleanup()
 
-    CreateTestTeam(t, env.TeamHandler, "frontend", 5)
+	CreateTestTeam(t, env.TeamHandler, "frontend", 5)
 
-    w1 := CreateTestPR(t, env.PRHandler, "pr-5000", "Feature A", "u30")
-    
-    var createResponse map[string]interface{}
-    json.NewDecoder(w1.Body).Decode(&createResponse)
-    pr := createResponse["pr"].(map[string]interface{})
-    reviewers := pr["assigned_reviewers"].([]interface{})
+	w1 := CreateTestPR(t, env.PRHandler, "pr-5000", "Feature A", "u30")
 
-    if len(reviewers) == 0 {
-        t.Skip("No reviewers assigned, skipping test")
-    }
+	var createResponse map[string]interface{}
+	err := json.NewDecoder(w1.Body).Decode(&createResponse)
 
-    reviewerID := reviewers[0].(string)
+	if err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
 
-    CreateTestPR(t, env.PRHandler, "pr-5001", "Feature B", "u31")
-    CreateTestPR(t, env.PRHandler, "pr-5002", "Feature C", "u32")
+	pr := createResponse["pr"].(map[string]interface{})
+	reviewers := pr["assigned_reviewers"].([]interface{})
 
-    req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/users/getReview?user_id=%s", reviewerID), nil)
-    w := httptest.NewRecorder()
+	if len(reviewers) == 0 {
+		t.Skip("No reviewers assigned, skipping test")
+	}
 
-    env.UserHandler.GetUserReviews(w, req)
+	reviewerID := reviewers[0].(string)
 
-    if w.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
-    }
+	CreateTestPR(t, env.PRHandler, "pr-5001", "Feature B", "u31")
+	CreateTestPR(t, env.PRHandler, "pr-5002", "Feature C", "u32")
 
-    var response map[string]interface{}
-    if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-        t.Fatalf("failed to decode response: %v", err)
-    }
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/users/getReview?user_id=%s", reviewerID), nil)
+	w := httptest.NewRecorder()
 
-    prs := response["pull_requests"].([]interface{})
+	env.UserHandler.GetUserReviews(w, req)
 
-    if len(prs) == 0 {
-        t.Errorf("expected at least 1 PR for reviewer %s", reviewerID)
-    }
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
 
-    for i, pr := range prs {
-        p := pr.(map[string]interface{})
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 
-        if p["pull_request_id"] == nil {
-            t.Errorf("PR %d: pull_request_id is missing", i)
-        }
+	prs := response["pull_requests"].([]interface{})
 
-        if p["author_id"] == nil {
-            t.Errorf("PR %d: author_id is missing", i)
-        }
+	if len(prs) == 0 {
+		t.Errorf("expected at least 1 PR for reviewer %s", reviewerID)
+	}
 
-        if p["status"] == nil {
-            t.Errorf("PR %d: status is missing", i)
-        }
-    }
+	for i, pr := range prs {
+		p := pr.(map[string]interface{})
+
+		if p["pull_request_id"] == nil {
+			t.Errorf("PR %d: pull_request_id is missing", i)
+		}
+
+		if p["author_id"] == nil {
+			t.Errorf("PR %d: author_id is missing", i)
+		}
+
+		if p["status"] == nil {
+			t.Errorf("PR %d: status is missing", i)
+		}
+	}
 }
-

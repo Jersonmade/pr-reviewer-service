@@ -104,7 +104,12 @@ func TestReassignOnMergedPR(t *testing.T) {
 	}
 
 	var createResponse map[string]interface{}
-	json.NewDecoder(w.Body).Decode(&createResponse)
+	err := json.NewDecoder(w.Body).Decode(&createResponse)
+
+	if err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
+
 	pr := createResponse["pr"].(map[string]interface{})
 	reviewers := pr["assigned_reviewers"].([]interface{})
 	oldReviewerID := reviewers[0].(string)
@@ -132,7 +137,11 @@ func TestReassignOnMergedPR(t *testing.T) {
 	}
 
 	var errorResponse map[string]interface{}
-	json.NewDecoder(w3.Body).Decode(&errorResponse)
+	err = json.NewDecoder(w3.Body).Decode(&errorResponse)
+
+	if err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
 
 	errorObj := errorResponse["error"].(map[string]interface{})
 	if errorObj["code"] != "PR_MERGED" {
@@ -163,7 +172,11 @@ func TestReassignNonExistentReviewer(t *testing.T) {
 	}
 
 	var errorResponse map[string]interface{}
-	json.NewDecoder(w2.Body).Decode(&errorResponse)
+	err := json.NewDecoder(w2.Body).Decode(&errorResponse)
+
+	if err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
 
 	errorObj := errorResponse["error"].(map[string]interface{})
 	if errorObj["code"] != "NOT_ASSIGNED" {
@@ -184,7 +197,11 @@ func TestReassignNoCandidate(t *testing.T) {
 	}
 
 	var createResponse map[string]interface{}
-	json.NewDecoder(w.Body).Decode(&createResponse)
+	err := json.NewDecoder(w.Body).Decode(&createResponse)
+
+	if err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
 	pr := createResponse["pr"].(map[string]interface{})
 	reviewers := pr["assigned_reviewers"].([]interface{})
 
@@ -206,7 +223,11 @@ func TestReassignNoCandidate(t *testing.T) {
 	}
 
 	var errorResponse map[string]interface{}
-	json.NewDecoder(w2.Body).Decode(&errorResponse)
+	err = json.NewDecoder(w2.Body).Decode(&errorResponse)
+
+	if err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
 
 	errorObj := errorResponse["error"].(map[string]interface{})
 	if errorObj["code"] != "NO_CANDIDATE" {

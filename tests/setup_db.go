@@ -32,12 +32,10 @@ func SetupTestEnvironment(t *testing.T) *TestEnvironment {
 	teamService := services.NewTeamService(store)
 	userService := services.NewUserService(store)
 	prService := services.NewPRService(store, userService)
-	// statsService := services.NewStatsService(store)
 
 	teamHandler := handlers.NewTeamHandler(teamService)
 	prHandler := handlers.NewPRHandler(prService)
 	userHandler := handlers.NewUserHandler(userService, prService)
-	// analyticsHandler := handlers.NewAnalyticsHandler(statsService)
 
 	return &TestEnvironment{
 		Store:       store,
@@ -87,8 +85,8 @@ func setupTestDB(t *testing.T) (*storage.PostgresStorage, func()) {
 	}
 
 	cleanup := func() {
-		store.Close()
-		postgresContainer.Terminate(ctx)
+		_ = store.Close()
+		_ = postgresContainer.Terminate(ctx)
 	}
 
 	return store, cleanup
