@@ -22,17 +22,17 @@ git clone https://github.com/Jersonmade/pr-reviewer-service.git
 cd pr-reviewer-service
 ```
 
-2. **Запустить сервис
+2. **Запустить сервис**
 ```bash
 docker-compose up -d --build
 ```
 
-3. Проверить работу
+3. **Проверить работу**
 ```bash
 curl http://localhost:8080/health
 ```
 
-4. Запустить тесты
+4. **Запустить тесты**
 ```bash
 go test ./tests -v
 ```
