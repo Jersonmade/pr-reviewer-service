@@ -7,10 +7,10 @@ import (
 )
 
 type AnalyticsHandler struct {
-	analyticsService *services.AnalyticsService
+	analyticsService *services.StatsService
 }
 
-func NewAnalyticsHandler(analyticsService *services.AnalyticsService) *AnalyticsHandler {
+func NewAnalyticsHandler(analyticsService *services.StatsService) *AnalyticsHandler {
 	return &AnalyticsHandler{analyticsService: analyticsService}
 }
 

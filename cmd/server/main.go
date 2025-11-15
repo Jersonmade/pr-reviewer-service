@@ -40,12 +40,12 @@ func main() {
 	userService := services.NewUserService(store)
 	teamService := services.NewTeamService(store)
 	prService := services.NewPRService(store, userService)
-	analyticsService := services.NewAnalyticsService(store)
+	statsService := services.NewStatsService(store)
 
 	userHandler := handlers.NewUserHandler(userService, prService)
 	teamHandler := handlers.NewTeamHandler(teamService)
 	prHandler := handlers.NewPRHandler(prService)
-	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService)
+	analyticsHandler := handlers.NewAnalyticsHandler(statsService)
 
 	mux := http.NewServeMux()
 
