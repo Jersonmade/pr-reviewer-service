@@ -1,0 +1,11 @@
+# Binaries
+bin/
+*.exe
+
+# Editor and IDE
+.idea/
+.vscode/
+
+# Build and dependencies
+vendor/
+build/
